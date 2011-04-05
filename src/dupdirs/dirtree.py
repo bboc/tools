@@ -1,6 +1,7 @@
 import hashlib
 import os
 
+
 class DirTree(object):
     """
     Representation of a directory.
@@ -14,7 +15,7 @@ class DirTree(object):
         #: list of all files in this node and all children
         self.contents = []
         self.num_files = 0
-        self.total_size = 0
+        self.size = 0
         self._create()
 
     def _create(self):
@@ -30,12 +31,12 @@ class DirTree(object):
                 # TODO-beb: maybe include st_mtime, see if that makes a difference on sample data
                 self.contents.append('%s (%s)' % (name, s.st_size))
                 self.num_files += 1
-                self.total_size += s.st_size
+                self.size += s.st_size
             else:
                 # directory
                 dt = DirTree(fp, self.factory)
                 self.num_files += dt.num_files
-                self.total_size += dt.total_size
+                self.size += dt.size
                 for entry in dt.contents:
                     self.contents.append(os.path.join(name, entry))
 
@@ -53,4 +54,5 @@ class DirTree(object):
             return d
 
     def __str__(self):
-        return 'size: %s\t files: %s \t%s' % (self.total_size, self.num_files, self.full_path)
+        return 'size: %s\t files: %s \t%s' % (self.size, self.num_files, self.full_path)
+

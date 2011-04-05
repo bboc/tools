@@ -25,11 +25,11 @@ Future enhancements:
 - flag to  find directories where is an extended duplicate (e.g. contains additional files)??
 - launch dircompare or meld on completion??
 
-# TODO-beb: use more than one start folders
+
 # TODO-beb: suport for verbose
 # TODO-beb: tests
-# TODO-beb: replace factory by ordereddict
-# TODO-beb: see if ordereddict and defaultdict can be combined
+# TODO-beb: replace factory by ordereddict (requires 2.7)
+# TODO-beb: see if ordereddict and defaultdict can be combined (requires 2.7)
 # TODO-beb: find and eliminate duplicates that are contained in othe duplicates
 # TODO-beb: re-package and add #!/usr/bin/env python
 """
