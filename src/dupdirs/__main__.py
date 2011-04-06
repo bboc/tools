@@ -53,11 +53,14 @@ class DuplicateSet(object):
         This set may contain more entries than the other set!!
         """
         if self.size < other.size or self.num_files < other.num_files:
+
             return False
         for other_item in other.items:
             for item in self.items:
                 if item.path.startswith(other_item.path):
                     # match found
+
+                    print 'match', item.path, other_item.path
                     break
             else:
                 return False
@@ -89,18 +92,25 @@ def find_duplicates(app):
     # order duplicate sets by size
     duplicates.sort(key=lambda ds: ds.size, reverse=False)
 
-#    # eliminate all nested duplicates
-#    real_duplicates = []
-#    for outer_item in duplicates:
-#        for inner_item in duplicates:
+    print '\n\nall duplicates found:', len(duplicates)
+
+    # eliminate all nested duplicates
+    real_duplicates = []
+    for idx, smaller_item in enumerate(duplicates):
+        for larger_item in duplicates[idx+1:]:
+            if larger_item.contains(smaller_item):
+                print '...contains...'
+                break
+        else:
+            real_duplicates.append(smaller_item)
 
 
-    for d in duplicates:
+    for d in real_duplicates:
         print d
 
-    print '\n\nduplicates found:', len(duplicates)
+    print '\n\nreal duplicates found:', len(real_duplicates)
 
-    return 1
+    return 0
 
 find_duplicates.add_param("-v", "--verbose", help="more verbose output", default=False, action="store_true")
 find_duplicates.add_param("root", nargs='+', help="path(s) to search for duplicates")
