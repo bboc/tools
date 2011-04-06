@@ -9,7 +9,7 @@ Lookup:
 - `dircmp <http://docs.python.org/library/filecmp.html#filecmp.dircmp>`_
 - `cli <http://packages.python.org/pyCLI/>`_
 - `python commandline tools <http://wiki.python.org/moin/CommandlineTools>`_
-- `argparse <http://docs.python.org/library/argparse.html?highlight=argparse>`_
+- `argparse <http://docs.python.org/library/argparse.html>`_
 
 Notes:
 ------

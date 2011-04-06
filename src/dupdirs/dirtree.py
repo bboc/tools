@@ -6,9 +6,10 @@ class DirTree(object):
     """
     Representation of a directory.
     """
-    def __init__(self, path, factory, symlink_warning):
+    def __init__(self, path, factory, use_mtime, symlink_warning):
         self.path = path
         self.factory = factory
+        self.use_mtime = use_mtime
         self.symlink_warning = symlink_warning
         self.factory.register(self)
         # list of child nodes
@@ -35,18 +36,21 @@ class DirTree(object):
                     import sys
                     sys.exit(1)
             elif os.path.isfile(fp):
-                s = os.stat(fp)
-                # TODO-beb: maybe include st_mtime, see if that makes a difference on sample data
-                self.contents.append('%s (%s)' % (name, s.st_size))
+                stat = os.stat(fp)
+                if self.use_mtime:
+                    self.contents.append('%s (%s@%s)' % (name, stat.st_size, stat.st_mtime))
+                else:
+                    self.contents.append('%s (%s)' % (name, stat.st_size))
                 self.num_files += 1
-                self.size += s.st_size
+                self.size += stat.st_size
             else:
                 # directory
-                dt = DirTree(fp, self.factory, self.symlink_warning)
+                dt = DirTree(fp, self.factory, self.use_mtime, self.symlink_warning)
                 self.num_files += dt.num_files
                 self.size += dt.size
                 for entry in dt.contents:
                     self.contents.append(os.path.join(name, entry))
+
 
     @property
     def digest(self):

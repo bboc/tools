@@ -71,7 +71,7 @@ def find_duplicates(app):
     # build up all directory trees
     for root in app.params.root:
         verbose('looking for duplicates in', root)
-        DirTree(root, factory, app.params.symlink_warning)
+        DirTree(root, factory, app.params.mtime, app.params.symlink_warning)
 
     # build all duplicates (may still contain nested duplicates)
     dirs_by_digest = defaultdict(DuplicateSet)
@@ -87,15 +87,45 @@ def find_duplicates(app):
         verbose('\n\nall duplicates found:', len(duplicates))
         duplicates = eliminate_nested_duplicates(duplicates)
 
-    for d in duplicates:
-        verbose(d)
+    if app.params.limit_results:
+        # slice the biggest few
+        start = len(duplicates) - app.params.limit_results
+        duplicates = duplicates[start:]
+
+
+    if app.params.dircmp:
+        # TODO-beb: check them with dircmp
+        pass
+
+    # show duplicates
+    if app.params.verbose:
+        for d in duplicates:
+            print(d)
 
     print('\n\nduplicates found:', len(duplicates))
 
     return 0
 
-find_duplicates.add_param("-v", "--verbose", help="more verbose output", default=False, action="store_true")
-find_duplicates.add_param("-s", "--symlink-warning", help="warn when encountering symlinks (default behavoiur is exit on first symlink found)", default=False, action="store_true")
+find_duplicates.add_param("-v", "--verbose",
+                          help="more verbose output",
+                          default=False, action="store_true")
+
+find_duplicates.add_param("-d", "--dircmp",
+                          help="use dircmp to verify results (after applying the limit)",
+                          default=False, action="store_true")
+
+find_duplicates.add_param("-s", "--symlink-warning",
+                          help="warn when encountering symlinks (default behavoiur is exit on first symlink found)",
+                          default=False, action="store_true")
+
+find_duplicates.add_param("-m", "--mtime",
+                          help="include last modifieds time in detection of duplicates",
+                          default=False, action="store_true")
+
+find_duplicates.add_param("-l", "--limit-results",
+                          help="limit number of displayed results to n (default is all)",
+                          type=int, default=0, action="store")
+
 find_duplicates.add_param("-n", "--no-nested-duplicates", help="don't detect nested duplicates", default=False, action="store_true")
 find_duplicates.add_param("-t", "--compare-tool", help="output duplicates list with compare tool", default=None, action="store")
 find_duplicates.add_param("root", nargs='+', help="path(s) to search for duplicates")
