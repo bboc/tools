@@ -199,8 +199,10 @@ find_duplicates.add_param("-l", "--limit-results",
                           help="limit number of displayed results to n (default is all)",
                           type=int, default=0, action="store")
 
-find_duplicates.add_param("-n", "--no-nested-duplicates", help="don't detect nested duplicates", default=False, action="store_true")
-find_duplicates.add_param("-t", "--compare-tool", help="output duplicates list with compare tool", default=None, action="store")
+find_duplicates.add_param("-n", "--no-nested-duplicates",
+                          help="don't detect nested duplicates",
+                          default=False, action="store_true")
+
 find_duplicates.add_param("root", nargs='+', help="path(s) to search for duplicates")
 
 
