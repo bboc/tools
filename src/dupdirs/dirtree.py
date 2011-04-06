@@ -1,5 +1,9 @@
+
+from __future__ import print_function
+
 import hashlib
 import os
+import sys
 
 
 class DirTree(object):
@@ -14,8 +18,10 @@ class DirTree(object):
         self.factory.register(self)
         # list of child nodes
         self.children = []
-        #: list of all files in this node and all children
+        #: list of all files in this node and all children, enhanced with size
+        # and an optional modified date
         self.contents = []
+        self.files = []
         self.num_files = 0
         self.size = 0
         self._create()
@@ -29,14 +35,14 @@ class DirTree(object):
         for name in sorted(os.listdir(self.path)):
             fp = os.path.join(self.path, name)
             if os.path.islink(fp):
-                print "WARNING, symbolic links not supported, anything might happen"
-                print "symlink found:", fp
+                print("WARNING, symbolic links not supported, anything might happen")
+                print("symlink found:", fp)
                 if not self.symlink_warning:
                     # exit on symlink
-                    import sys
                     sys.exit(1)
             elif os.path.isfile(fp):
                 stat = os.stat(fp)
+                self.files.append(name)
                 if self.use_mtime:
                     self.contents.append('%s (%s@%s)' % (name, stat.st_size, stat.st_mtime))
                 else:
@@ -50,6 +56,8 @@ class DirTree(object):
                 self.size += dt.size
                 for entry in dt.contents:
                     self.contents.append(os.path.join(name, entry))
+                for f in dt.files:
+                    self.files.append(os.path.join(name, f))
 
 
     @property
@@ -72,10 +80,7 @@ class DirTree(object):
 
 class Factory(dict):
     """
-
-    Factory stores all DirTrees by path for easy access,
-    keeps order of keys.
-    TODO-beb: replace with ordereddict from http://code.activestate.com/recipes/576693/
+    Factory stores all DirTrees by path for easy access, keeps order of keys.
     """
 
     def __init__(self):
