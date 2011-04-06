@@ -1,4 +1,4 @@
-
+from __future__ import print_function
 from collections import defaultdict
 import hashlib
 import os
@@ -13,12 +13,10 @@ class DuplicateSet(object):
     class NotReallyADuplicateError(Exception):
         """Raised if duplicates added to a set are not duplicates"""
 
-
     def __init__(self):
         self.items = []
         self.size = None
         self.num_files = None
-
 
     def add(self, duplicate):
         """Add duplicate to set, check basic parameters before."""
@@ -38,11 +36,6 @@ class DuplicateSet(object):
             s+='\n%s' % d.path
         return s
 
-
-    def __cmp__(self, other):
-        """neg if self < other"""
-
-
     def contains(self, other):
         """
         return True if this DuplicateSet contains the other set, e.g. if all
@@ -53,21 +46,15 @@ class DuplicateSet(object):
         This set may contain more entries than the other set!!
         """
         if self.size < other.size or self.num_files < other.num_files:
-
             return False
         for other_item in other.items:
             for item in self.items:
                 if item.path.startswith(other_item.path):
                     # match found
-
-                    print 'match', item.path, other_item.path
                     break
             else:
                 return False
         return True
-
-
-
 
 
 @cli.app.CommandLineApp
@@ -77,10 +64,14 @@ def find_duplicates(app):
     """
     factory = Factory()
 
+    def verbose(*args):
+        if app.params.verbose:
+            print(*args)
+
     # build up all directory trees
     for root in app.params.root:
-        print 'looking for duplicates in', root
-        DirTree(root, factory)
+        verbose('looking for duplicates in', root)
+        DirTree(root, factory, app.params.symlink_warning)
 
     # build all duplicates (may still contain nested duplicates)
     dirs_by_digest = defaultdict(DuplicateSet)
@@ -92,30 +83,38 @@ def find_duplicates(app):
     # order duplicate sets by size
     duplicates.sort(key=lambda ds: ds.size, reverse=False)
 
-    print '\n\nall duplicates found:', len(duplicates)
+    if not app.params.no_nested_duplicates:
+        verbose('\n\nall duplicates found:', len(duplicates))
+        duplicates = eliminate_nested_duplicates(duplicates)
 
+    for d in duplicates:
+        verbose(d)
+
+    print('\n\nduplicates found:', len(duplicates))
+
+    return 0
+
+find_duplicates.add_param("-v", "--verbose", help="more verbose output", default=False, action="store_true")
+find_duplicates.add_param("-s", "--symlink-warning", help="warn when encountering symlinks (default behavoiur is exit on first symlink found)", default=False, action="store_true")
+find_duplicates.add_param("-n", "--no-nested-duplicates", help="don't detect nested duplicates", default=False, action="store_true")
+find_duplicates.add_param("-t", "--compare-tool", help="output duplicates list with compare tool", default=None, action="store")
+find_duplicates.add_param("root", nargs='+', help="path(s) to search for duplicates")
+
+
+def eliminate_nested_duplicates(duplicates):
+    """
+    This will most likely be not very effective for most data sets, so it is
+    optional.
+    """
     # eliminate all nested duplicates
     real_duplicates = []
     for idx, smaller_item in enumerate(duplicates):
         for larger_item in duplicates[idx+1:]:
             if larger_item.contains(smaller_item):
-                print '...contains...'
                 break
         else:
             real_duplicates.append(smaller_item)
-
-
-    for d in real_duplicates:
-        print d
-
-    print '\n\nreal duplicates found:', len(real_duplicates)
-
-    return 0
-
-find_duplicates.add_param("-v", "--verbose", help="more verbose output", default=False, action="store_true")
-find_duplicates.add_param("root", nargs='+', help="path(s) to search for duplicates")
-
-
+    return real_duplicates
 
 
 if __name__ == '__main__':

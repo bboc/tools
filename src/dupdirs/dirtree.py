@@ -6,9 +6,10 @@ class DirTree(object):
     """
     Representation of a directory.
     """
-    def __init__(self, path, factory):
+    def __init__(self, path, factory, symlink_warning):
         self.path = path
         self.factory = factory
+        self.symlink_warning = symlink_warning
         self.factory.register(self)
         # list of child nodes
         self.children = []
@@ -26,7 +27,14 @@ class DirTree(object):
         # sort entries so self.contents is always sorted
         for name in sorted(os.listdir(self.path)):
             fp = os.path.join(self.path, name)
-            if os.path.isfile(fp):
+            if os.path.islink(fp):
+                print "WARNING, symbolic links not supported, anything might happen"
+                print "symlink found:", fp
+                if not self.symlink_warning:
+                    # exit on symlink
+                    import sys
+                    sys.exit(1)
+            elif os.path.isfile(fp):
                 s = os.stat(fp)
                 # TODO-beb: maybe include st_mtime, see if that makes a difference on sample data
                 self.contents.append('%s (%s)' % (name, s.st_size))
@@ -34,7 +42,7 @@ class DirTree(object):
                 self.size += s.st_size
             else:
                 # directory
-                dt = DirTree(fp, self.factory)
+                dt = DirTree(fp, self.factory, self.symlink_warning)
                 self.num_files += dt.num_files
                 self.size += dt.size
                 for entry in dt.contents:
