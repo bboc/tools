@@ -5,21 +5,37 @@ import os
 
 import cli.app
 
-from dirtree import DirTree
+from dirtree import DirTree, Factory
 
 
 class DuplicateSet(object):
 
-    def __init__(self, duplicates):
-        self.duplicates = duplicates
-        self.size = duplicates[0].size
-        self.num_files = duplicates[0].num_files
+    class NotReallyADuplicateError(Exception):
+        """Raised if duplicates added to a set are not duplicates"""
 
+
+    def __init__(self):
+        self.items = []
+        self.size = None
+        self.num_files = None
+
+
+    def add(self, duplicate):
+        """Add duplicate to set, check basic parameters before."""
+        if not len(self.items):
+            self.size = duplicate.size
+            self.num_files = duplicate.num_files
+        else:
+            if duplicate.size != self.size:
+                raise DuplicateSet.NotReallyADuplicateError()
+            elif duplicate.num_files != self.num_files:
+                raise DuplicateSet.NotReallyADuplicateError()
+        self.items.append(duplicate)
 
     def __str__(self):
         s = '\nduplicate %s bytes %s files' % (self.size, self.num_files)
-        for d in self.duplicates:
-            s+='\n%s' % d.full_path
+        for d in self.items:
+            s+='\n%s' % d.path
         return s
 
 
@@ -36,11 +52,19 @@ class DuplicateSet(object):
         This can be determined by looking at paths only!!
         This set may contain more entries than the other set!!
         """
+        if self.size < other.size or self.num_files < other.num_files:
+            return False
+        for other_item in other.items:
+            for item in self.items:
+                if item.path.startswith(other_item.path):
+                    # match found
+                    break
+            else:
+                return False
+        return True
 
 
 
-class NotReallyDuplicatesError(Exception):
-    """Raised if duplicates added to a set are not duplicates"""
 
 
 @cli.app.CommandLineApp
@@ -56,22 +80,19 @@ def find_duplicates(app):
         DirTree(root, factory)
 
     # build all duplicates (may still contain nested duplicates)
-    dirs_by_digest = defaultdict(list)
+    dirs_by_digest = defaultdict(DuplicateSet)
     for item in factory.values():
-        dirs_by_digest[item.digest].append(item)
+        dirs_by_digest[item.digest].add(item)
 
-    # build DuplicateSets
-    duplicates = []
-    for digest in dirs_by_digest:
-        if len(dirs_by_digest[digest]) > 1:
-            try:
-                dup = DuplicateSet(dirs_by_digest[digest])
+    # get all actual duplicates
+    duplicates = [item for item in dirs_by_digest.values() if len(item.items) > 1]
+    # order duplicate sets by size
+    duplicates.sort(key=lambda ds: ds.size, reverse=False)
 
-                duplicates.append(dup)
-            except NotReallyDuplicatesError:
-                pass
-
-    duplicates.sort(key=lambda dup: dup.size, reverse=False)
+#    # eliminate all nested duplicates
+#    real_duplicates = []
+#    for outer_item in duplicates:
+#        for inner_item in duplicates:
 
 
     for d in duplicates:
@@ -85,10 +106,6 @@ find_duplicates.add_param("-v", "--verbose", help="more verbose output", default
 find_duplicates.add_param("root", nargs='+', help="path(s) to search for duplicates")
 
 
-class Factory(dict):
-    """Factory stores all DirTrees by full_path for easy access."""
-    def register(self, item):
-        self[item.full_path] = item
 
 
 if __name__ == '__main__':

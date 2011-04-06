@@ -24,14 +24,16 @@ Comparison:
 Future enhancements:
 - flag to  find directories where is an extended duplicate (e.g. contains additional files)??
 - launch dircompare or meld on completion??
+- flag to delete empty directories (trigger re-scan afterwards)
 
 
-# TODO-beb: suport for verbose
-# TODO-beb: tests
-# TODO-beb: replace factory by ordereddict (requires 2.7)
-# TODO-beb: see if ordereddict and defaultdict can be combined (requires 2.7)
-# TODO-beb: find and eliminate duplicates that are contained in othe duplicates
-# TODO-beb: re-package and add #!/usr/bin/env python
+TODO-beb: suport for verbose
+TODO-beb: tests
+TODO-beb: replace factory by ordereddict (requires 2.7)
+TODO-beb: see if ordereddict and defaultdict can be combined (requires 2.7)
+TODO-beb: find and eliminate duplicates that are contained in othe duplicates
+TODO-beb: re-package and add #!/usr/bin/env python
+TODO-beb: warning if encountering links (soft or hard!!)
 """
 
 
