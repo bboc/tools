@@ -8,6 +8,8 @@ class DuplicateSet(object):
     Duplicate set as it is built after recursively processing the file system.
 
     Don't use print here, aggregate all messages in self.messages.
+
+    Output of __str__() is used in interactive mode to create a ShallowDuplicateSet
     """
     class NotReallyADuplicateError(Exception):
         """Raised if duplicates added to a set are not duplicates"""
@@ -86,7 +88,6 @@ class DuplicateSet(object):
                 if dc.funny_files:
                     self.messages.append('-->funny files:', dc.funny_files)
 
-
     def filecmp(self):
         """
         Use filecmp to realy check for identity of duplicate sets.
@@ -153,7 +154,14 @@ class ShallowDuplicateSet(object):
         Process the actual deletes, do not delete anything if errors occurred.
 
         Err on the side of caution.
+        TODO-beb: make sure all folders still exist, otherwise accidental deletion
+            on rerun is possible
         """
+
+        for _cmd, folder in self.items:
+            if not os.path.exists(folder):
+                print('-->ignored set: a folder does not exist')
+                return
         print('processing shallow duplicate [%s]' % self.digest)
         if self.errors:
             print('-->ignored set: errors')
@@ -167,11 +175,11 @@ class ShallowDuplicateSet(object):
             print('-->ignored set: must keep at least one of the duplicates')
             return
         elif delete:
-            for cmd, folder in delete:
+            for _cmd, folder in delete:
                 if not commit:
                     print('dry-run: deleting', folder)
                 else:
                     print('deleting', folder)
-                    #shutil.rmtree(folder)
+                    shutil.rmtree(folder)
 
 
