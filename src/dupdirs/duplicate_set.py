@@ -3,7 +3,11 @@ import os
 
 
 class DuplicateSet(object):
+    """
+    Duplicate set as it is built after recursively processing the file system.
 
+    Don't use print here, aggregate all messages in self.messages.
+    """
     class NotReallyADuplicateError(Exception):
         """Raised if duplicates added to a set are not duplicates"""
 
@@ -74,12 +78,12 @@ class DuplicateSet(object):
     def dircmp(self):
         """Use dircmp to detect funny files in the duplicate sets"""
         if len(self.items) < 2:
-            print('only one item in this duplicate set, nothing to compare')
+            self.messages.append('only one item in this duplicate set, nothing to compare')
         else:
             for idx in range(len(self.items)-1):
                 dc = filecmp.dircmp(self.items[idx].path, self.items[idx+1].path)
                 if dc.funny_files:
-                    print('funny files:', dc.funny_files)
+                    self.messages.append('funny files:', dc.funny_files)
 
 
     def filecmp(self):

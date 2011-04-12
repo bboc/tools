@@ -4,6 +4,7 @@ from __future__ import print_function
 from collections import defaultdict
 from functools import wraps
 import hashlib
+import sys
 
 import cli.app
 
@@ -28,11 +29,28 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
 
     @timed
     def main(self):
+        if self.params.input:
+            self.interactive()
+        else:
+            self.find_duplicates()
+
+
+    def interactive(self):
+        """Process duplicates in infile"""
+        if self.params.root:
+            self.error("ERROR: don't use paths in interactive mode.")
+            return
+
+    def find_duplicates(self):
         """
         Find duplicate directories in a list of given dirs.
         """
 
-        duplicates = self.build_duplicate_set()
+        if not len(self.params.root):
+            self.error("ERROR: please supply a path")
+            return
+
+        duplicates = self._build_duplicate_set()
 
         if not self.params.no_nested_duplicates:
             self.verbose('\n\nall duplicates found:', len(duplicates))
@@ -57,6 +75,23 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
         print('\n\nduplicates found:', len(duplicates))
         return 0
 
+    def _build_duplicate_set(self):
+        factory = Factory()
+        # build up all directory trees
+        for root in self.params.root:
+            self.verbose('looking for duplicates in', root)
+            DirTree(root, factory, self.params.mtime, self.params.symlink_warning)
+
+        # build all duplicates (may still contain nested duplicates)
+        dirs_by_digest = defaultdict(DuplicateSet)
+        for item in factory.values():
+            dirs_by_digest[item.digest].add(item)
+
+        # get all actual duplicates
+        duplicates = [item for item in dirs_by_digest.values() if len(item.items) > 1] # order duplicate sets by size
+        duplicates.sort(key=lambda ds:ds.size, reverse=False)
+        return duplicates
+
     def _eliminate_nested_duplicates(self, duplicates):
         """
         This will most likely be not very effective for most data sets, so it is
@@ -75,6 +110,11 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
     def verbose(self, *args):
         if self.params.verbose:
             print(*args)
+
+    def error(self, *args):
+        """print error output"""
+        print(*args, file=sys.stderr)
+
 
     def setup(self):
         """Define commandline parameters and messages."""
@@ -115,25 +155,7 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
                                   help="don't detect nested duplicates",
                                   default=False, action="store_true")
 
-        self.add_param("root", nargs='+', help="path(s) to search for duplicates")
-
-    def build_duplicate_set(self):
-        factory = Factory()
-        # build up all directory trees
-        for root in self.params.root:
-            self.verbose('looking for duplicates in', root)
-            DirTree(root, factory, self.params.mtime, self.params.symlink_warning)
-
-        # build all duplicates (may still contain nested duplicates)
-        dirs_by_digest = defaultdict(DuplicateSet)
-        for item in factory.values():
-            dirs_by_digest[item.digest].add(item)
-
-        # get all actual duplicates
-        duplicates = [item for item in dirs_by_digest.values() if len(item.items) > 1] # order duplicate sets by size
-        duplicates.sort(key=lambda ds:ds.size, reverse=False)
-        return duplicates
-
+        self.add_param("root", nargs='*', help="path(s) to search for duplicates")
 
 
 if __name__ == '__main__':
