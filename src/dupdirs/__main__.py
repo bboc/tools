@@ -136,6 +136,7 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
                 real_duplicates.append(smaller_item)
         return real_duplicates
 
+
     def verbose(self, *args):
         if self.params.verbose:
             print(*args)
