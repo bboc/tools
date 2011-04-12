@@ -86,7 +86,7 @@ class DuplicateSet(object):
             for idx in range(len(self.items)-1):
                 dc = filecmp.dircmp(self.items[idx].path, self.items[idx+1].path)
                 if dc.funny_files:
-                    self.messages.append('-->funny files:', dc.funny_files)
+                    self.messages.append('-->funny files: %s' % dc.funny_files)
 
     def filecmp(self):
         """
@@ -107,7 +107,7 @@ class DuplicateSet(object):
                     b = os.path.join(right.path, right.files[file_idx])
 
                     if not filecmp.cmp(a, b, shallow=False):
-                        self.messages.append('-->file mismatch: %s %s' (a, b))
+                        self.messages.append('-->file mismatch: %s %s' % (a, b))
                         all_good = False
             if all_good:
                 self.messages.append('SUCCESS: identical duplicates verified')
