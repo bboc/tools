@@ -1,6 +1,7 @@
 import filecmp
 import os
-
+import re
+import shutil
 
 class DuplicateSet(object):
     """
@@ -47,12 +48,12 @@ class DuplicateSet(object):
         else:
             digest = 'empty folders'
 
-        s = ['', '#duplicate [%s] %s bytes %s files' % (digest, human_readable(self.size), self.num_files)]
+        s = ['', '#duplicate set [%s] %s duplicates %s bytes %s files' % (digest, len(self.items), human_readable(self.size), self.num_files)]
 
         for d in self.items:
-            s.append('keep "%s"' % d.path)
-        s.append('#/duplicate [%s]' % digest)
+            s.append('[delete]("%s")' % d.path)
         s.extend(self.messages)
+        s.append('#/duplicate set [%s]' % digest)
         return '\n'.join(s)
 
     def contains(self, other):
@@ -78,12 +79,12 @@ class DuplicateSet(object):
     def dircmp(self):
         """Use dircmp to detect funny files in the duplicate sets"""
         if len(self.items) < 2:
-            self.messages.append('only one item in this duplicate set, nothing to compare')
+            self.messages.append('-->only one item in this duplicate set, nothing to compare')
         else:
             for idx in range(len(self.items)-1):
                 dc = filecmp.dircmp(self.items[idx].path, self.items[idx+1].path)
                 if dc.funny_files:
-                    self.messages.append('funny files:', dc.funny_files)
+                    self.messages.append('-->funny files:', dc.funny_files)
 
 
     def filecmp(self):
@@ -105,10 +106,10 @@ class DuplicateSet(object):
                     b = os.path.join(right.path, right.files[file_idx])
 
                     if not filecmp.cmp(a, b, shallow=False):
-                        self.messages.append('file mismatch: %s %s' (a, b))
+                        self.messages.append('-->file mismatch: %s %s' (a, b))
                         all_good = False
             if all_good:
-                self.messages.append('-->identical duplicates verified')
+                self.messages.append('SUCCESS: identical duplicates verified')
             else:
                 self.messages.append('-->WARNING: differences detected!!')
             return all_good
@@ -116,15 +117,61 @@ class DuplicateSet(object):
 
 class ShallowDuplicateSet(object):
 
-    def __init__(self, num_files, digest, size):
+    line_types = [
+                   ('SET_START', re.compile('\#duplicate set \[(?P<digest>[\w]{32})\] (?P<num_duplicates>[\d]*) duplicates (?P<size>[\d\.]*) bytes (?P<num_files>[\d]*) files')),
+                   ('SET_END', re.compile('#/duplicate set \[(?P<digest>[\w]{32})\]')),
+                   ('DUPLICATE', re.compile('\[(?P<cmd>.*)\]\(\"(?P<path>.*)\"\)')),
+                   ('ERROR', re.compile('-->(?P<message>.*)')),
+    ]
+
+    @classmethod
+    def parse_line(cls, line):
+        """Return line_type, group_dict or None, None."""
+        for name, regex in cls.line_types:
+            match = regex.match(line)
+            if match:
+                return name, match.groupdict()
+        return None, None
+
+
+    def __init__(self, num_duplicates, num_files, digest, size):
+        self.num_duplicates = int(num_duplicates)
         self.num_files = num_files
         self.digest = digest
         self.size = size
         self.items = []
+        self.errors = []
 
-    def add(self, line):
-        print('added', line)
-        self.items.append(line)
+    def add(self, cmd, folder):
+        self.items.append((cmd, folder))
 
-    def process(self):
+    def add_error(self, msg):
+        self.errors.append(msg)
+
+    def process(self, commit=False):
+        """
+        Process the actual deletes, do not delete anything if errors occurred.
+
+        Err on the side of caution.
+        """
         print('processing shallow duplicate [%s]' % self.digest)
+        if self.errors:
+            print('-->ignored set: errors')
+            return
+        if self.num_duplicates != len(self.items):
+            print('--> ignored set: wrong number of items', self.num_duplicates, self.items)
+            return
+        keep = filter(lambda x: x[0] != 'delete', self.items)
+        delete = filter(lambda x: x[0] == 'delete', self.items)
+        if not len(keep):
+            print('-->ignored set: must keep at least one of the duplicates')
+            return
+        elif delete:
+            for cmd, folder in delete:
+                if not commit:
+                    print('dry-run: deleting', folder)
+                else:
+                    print('deleting', folder)
+                    #shutil.rmtree(folder)
+
+

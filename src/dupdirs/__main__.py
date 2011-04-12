@@ -4,7 +4,6 @@ from __future__ import print_function
 from collections import defaultdict
 from functools import wraps
 import hashlib
-import re
 import sys
 
 import cli.app
@@ -13,11 +12,6 @@ from duplicate_set import DuplicateSet, ShallowDuplicateSet
 from dirtree import DirTree, Factory
 from datetime import datetime
 
-
-
-DUPLICATE_START = re.compile('\#duplicate \[(?P<digest>[\w]{32})\] (?P<size>[\d\.]*) bytes (?P<num_files>[\d]*) files')
-
-DUPLICATE_END = '#/duplicate [%s]'
 
 def timed(f):
     """Time execution, print results."""
@@ -53,19 +47,28 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
 
     def _process_duplicates_from_file(self, f):
         current_ds = None
+
         for line in f:
-            if not current_ds:
-                match = DUPLICATE_START.match(line)
-                if match:
-                    gd = match.groupdict()
-                    current_ds = ShallowDuplicateSet(gd['num_files'], gd['digest'], gd['size'])
+            line = line.strip()
+            line_type, params = ShallowDuplicateSet.parse_line(line)
+            if line_type == 'SET_START':
+                print()
+                print(line)
+                if current_ds:
+                    print('-->error: did not terminate last set properly')
+                current_ds = ShallowDuplicateSet(params['num_duplicates'], params['num_files'], params['digest'], params['size'])
+            elif line_type == 'SET_END':
+                if current_ds.digest != params['digest']:
+                    print('-->digest mismatch, ignoring')
                     continue
-            elif current_ds and line.startswith(DUPLICATE_END % current_ds.digest):
-                print('duplicate end')
-                current_ds.process()
+                current_ds.process(self.params.commit)
+                # clear
                 current_ds = None
-            elif current_ds:
-                current_ds.add(line)
+            elif line_type == 'ERROR':
+                current_ds.add_error(params)
+            elif line_type == 'DUPLICATE':
+                print(line)
+                current_ds.add(params['cmd'], params['path'])
 
 
     def find_duplicates(self):
@@ -163,6 +166,9 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
 
         self.add_param("-m", "--mtime",
                                   help="include last modifieds time in detection of duplicates",
+                                  default=False, action="store_true")
+        self.add_param("-c", "--commit",
+                                  help="actually do the deletions (only used with --input)",
                                   default=False, action="store_true")
 
         self.add_param("-l", "--limit-results",
