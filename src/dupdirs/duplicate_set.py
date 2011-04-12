@@ -112,3 +112,12 @@ class DuplicateSet(object):
             else:
                 self.messages.append('-->WARNING: differences detected!!')
             return all_good
+
+
+class ShallowDuplicateSet(object):
+
+    def __init__(self, num_files, digest, size):
+        self.num_files = num_files
+        self.digest = digest
+        self.size = size
+        self.items = []

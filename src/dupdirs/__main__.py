@@ -4,13 +4,18 @@ from __future__ import print_function
 from collections import defaultdict
 from functools import wraps
 import hashlib
+import re
 import sys
 
 import cli.app
 
-from duplicate_set import DuplicateSet
+from duplicate_set import DuplicateSet, ShallowDuplicateSet
 from dirtree import DirTree, Factory
 from datetime import datetime
+
+
+
+DUPLICATE_START = re.compile('\#duplicate \[(?P<digest>[\w]{32})\] (?P<size>[\d\.]*) bytes (?P<num_files>[\d]*) files')
 
 def timed(f):
     """Time execution, print results."""
@@ -41,11 +46,22 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
             self.error("ERROR: don't use paths in interactive mode.")
             return
 
+        with open(self.params.input) as f:
+            self._process_duplicates_from_file(f)
+
+
+    def _process_duplicates_from_file(self, f):
+        current_ds = None
+        for line in f:
+            match = DUPLICATE_START.match(line)
+            if match:
+                gd = match.groupdict()
+                current_ds = ShallowDuplicateSet(gd['num_files'], gd['digest'], gd['size'])
+
     def find_duplicates(self):
         """
         Find duplicate directories in a list of given dirs.
         """
-
         if not len(self.params.root):
             self.error("ERROR: please supply a path")
             return
