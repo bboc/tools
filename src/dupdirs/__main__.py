@@ -17,6 +17,8 @@ from datetime import datetime
 
 DUPLICATE_START = re.compile('\#duplicate \[(?P<digest>[\w]{32})\] (?P<size>[\d\.]*) bytes (?P<num_files>[\d]*) files')
 
+DUPLICATE_END = '#/duplicate [%s]'
+
 def timed(f):
     """Time execution, print results."""
     @wraps(f)
@@ -49,14 +51,22 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
         with open(self.params.input) as f:
             self._process_duplicates_from_file(f)
 
-
     def _process_duplicates_from_file(self, f):
         current_ds = None
         for line in f:
-            match = DUPLICATE_START.match(line)
-            if match:
-                gd = match.groupdict()
-                current_ds = ShallowDuplicateSet(gd['num_files'], gd['digest'], gd['size'])
+            if not current_ds:
+                match = DUPLICATE_START.match(line)
+                if match:
+                    gd = match.groupdict()
+                    current_ds = ShallowDuplicateSet(gd['num_files'], gd['digest'], gd['size'])
+                    continue
+            elif current_ds and line.startswith(DUPLICATE_END % current_ds.digest):
+                print('duplicate end')
+                current_ds.process()
+                current_ds = None
+            elif current_ds:
+                current_ds.add(line)
+
 
     def find_duplicates(self):
         """

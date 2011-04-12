@@ -121,3 +121,10 @@ class ShallowDuplicateSet(object):
         self.digest = digest
         self.size = size
         self.items = []
+
+    def add(self, line):
+        print('added', line)
+        self.items.append(line)
+
+    def process(self):
+        print('processing shallow duplicate [%s]' % self.digest)
