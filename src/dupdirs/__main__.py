@@ -5,6 +5,7 @@ from collections import defaultdict
 import filecmp
 import hashlib
 import os
+from functools import wraps
 
 import cli.app
 
@@ -78,7 +79,6 @@ class DuplicateSet(object):
                 return False
         return True
 
-
     def dircmp(self):
         """Use dircmp to detect funny files in the duplicate sets"""
         if len(self.items) < 2:
@@ -88,7 +88,6 @@ class DuplicateSet(object):
                 dc = filecmp.dircmp(self.items[idx].path, self.items[idx+1].path)
                 if dc.funny_files:
                     print('funny files:', dc.funny_files)
-
 
     def filecmp(self):
         """
@@ -114,14 +113,25 @@ class DuplicateSet(object):
             return res
 
 
+def timed(f):
+    """Time execution, print results."""
+    @wraps(f)
+    def wrapper(*args, **kwds):
+        start_time = datetime.now()
+
+        res = f(*args, **kwds)
+        delta = datetime.now() - start_time
+        print('time elapsed', delta)
+        return res
+    return wrapper
+
 class FindDuplicatesDirs(cli.app.CommandLineApp):
 
+    @timed
     def main(self):
-
         """
         Find duplicate directories in a list of given dirs.
         """
-        start_time = datetime.now()
         factory = Factory()
 
         def verbose(*args):
@@ -166,8 +176,7 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
 
         print('\n\nduplicates found:', len(duplicates))
 
-        delta = datetime.now() - start_time
-        print('time elapsed', delta)
+
         return 0
 
 
