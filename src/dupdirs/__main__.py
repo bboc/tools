@@ -90,18 +90,18 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
             start = len(duplicates) - self.params.limit_results
             duplicates = duplicates[start:]
 
-        if self.params.dircmp:
-            for d in duplicates:
+        # output results, optionally run dircmp and filecmp
+        # doing this in one loop provides continous output and creates
+        # an impression of progress.
+        for d in duplicates:
+            if self.params.dircmp:
                 d.dircmp()
 
-        if self.params.filecmp:
-            for d in duplicates:
+            if self.params.filecmp:
                 d.filecmp()
 
-        # show results
-        for d in duplicates:
             print(d)
-        print('\n\nduplicates found:', len(duplicates))
+        print('\n\nduplicates processed:', len(duplicates))
         return 0
 
     def _build_duplicate_set(self):
