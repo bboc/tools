@@ -69,7 +69,7 @@ class DirTree(object):
             m = hashlib.md5()
             for item in self.contents:
                 m.update(item)
-            d = m.digest()
+            d = m.hexdigest()
             self._digest = d
             return d
 

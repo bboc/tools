@@ -34,6 +34,10 @@ class DuplicateSet(object):
         self.items.append(duplicate)
 
     def __str__(self):
+        """
+        Output a duplicate set in human readable format that can also
+        be processed when using -i.
+        """
         def human_readable(number):
             """Insert dots into numbers at every three digits."""
             res = ''
@@ -42,11 +46,17 @@ class DuplicateSet(object):
                     res = '.' + res
                 res = c + res
             return res
+        if self.num_files:
+            digest = self.items[0].digest
+        else:
+            digest = 'empty folders'
 
-        s = '\nduplicate %s bytes %s files' % (human_readable(self.size), self.num_files)
+        s = ['', '#duplicate [%s] %s bytes %s files' % (digest, human_readable(self.size), self.num_files)]
+
         for d in self.items:
-            s+='\n%s' % d.path
-        return s
+            s.append('keep "%s"' % d.path)
+        s.append('#/duplicate [%s]' % digest)
+        return '\n'.join(s)
 
     def contains(self, other):
         """
