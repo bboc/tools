@@ -90,6 +90,7 @@ class DuplicateSet(object):
             print('only one item in this duplicate set, nothing to compare')
             return False
         else:
+            res = True
             for item_idx in range(len(self.items)-1):
                 for file_idx in range(len(self.items[item_idx].files)):
                     left = self.items[item_idx]
@@ -99,8 +100,8 @@ class DuplicateSet(object):
 
                     if not filecmp.cmp(a, b, shallow=False):
                         print('file mismatch:', a, b)
-                        return False
-            return True
+                        res = False
+            return res
 
 
 @cli.app.CommandLineApp
