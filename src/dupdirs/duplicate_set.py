@@ -154,10 +154,7 @@ class ShallowDuplicateSet(object):
         Process the actual deletes, do not delete anything if errors occurred.
 
         Err on the side of caution.
-        TODO-beb: make sure all folders still exist, otherwise accidental deletion
-            on rerun is possible
         """
-
         for _cmd, folder in self.items:
             if not os.path.exists(folder):
                 print('-->ignored set: a folder does not exist')
@@ -181,5 +178,3 @@ class ShallowDuplicateSet(object):
                 else:
                     print('deleting', folder)
                     shutil.rmtree(folder)
-
-
