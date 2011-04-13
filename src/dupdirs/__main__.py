@@ -193,7 +193,9 @@ class FindDuplicatesDirs(cli.app.CommandLineApp):
         self.add_param("root", nargs='*', help="path(s) to search for duplicates")
 
 
-if __name__ == '__main__':
+def main():
     fd =FindDuplicatesDirs()
     fd.run()
 
+if __name__ == '__main__':
+    main()
